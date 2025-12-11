@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subida a S3 con URL Prefirmada</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f4f7f6;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 400px;
+            max-width: 90%;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .instructions {
+            background-color: #fff3cd;
+            border: 1px solid #ffeeba;
+            color: #856404;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+        input[type="file"] {
+            display: block;
+            margin-bottom: 20px;
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        button:hover:not(:disabled) {
+            background-color: #2980b9;
+        }
+        button:disabled {
+            background-color: #aeb6bf;
+            cursor: not-allowed;
+        }
+        .message {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background-color: #e0f7fa;
+            color: #00838f;
+            border: 1px solid #b2ebf2;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🚀 Subida Segura a S3 (Prueba Manual)</h1>
+    
+    <div class="instructions">
+        <strong>INSTRUCCIONES:</strong>
+        <ol>
+            <li>Ejecuta el pipeline de GitHub y copia la URL prefirmada (larga).</li>
+            <li>Pega esa URL en el código JavaScript (`SIMULATED_PRESIGNED_URL`).</li>
+            <li>Abre este archivo HTML en tu navegador.</li>
+            <li>Sube una imagen/archivo.</li>
+        </ol>
+    </div>
+
+    <div id="statusMessage" class="message info">Esperando la selección de un archivo.</div>
+
+    <input type="file" id="fileInput" accept="image/*,video/*,application/pdf">
+    
+    <button id="uploadButton" onclick="startUpload()" disabled>Subir Archivo a S3</button>
+
+    <div id="resultLink" class="message success" style="display: none;"></div>
+</div>
+
+<script>
+    document.getElementById('fileInput').addEventListener('change', function() {
+        const button = document.getElementById('uploadButton');
+        if (this.files.length > 0) {
+            button.disabled = false;
+            updateStatus('info', 'Archivo listo para subir.');
+        } else {
+            button.disabled = true;
+            updateStatus('info', 'Esperando la selección de un archivo.');
+        }
+    });
+
+    function updateStatus(type, message, link = null) {
+        const statusDiv = document.getElementById('statusMessage');
+        const linkDiv = document.getElementById('resultLink');
+        
+        statusDiv.className = `message ${type}`;
+        statusDiv.textContent = message;
+
+        if (link) {
+            linkDiv.style.display = 'block';
+            linkDiv.innerHTML = `¡Subida exitosa! <br> <a href="${link}" target="_blank">Ver Archivo</a>`;
+        } else {
+            linkDiv.style.display = 'none';
+        }
+    }
+
+    const SIMULATED_PRESIGNED_URL = 'PEGAR_AQUÍ_LA_URL_LARGA_GENERADA_POR_GITHUB_ACTIONS'; 
+
+    const SIMULATED_PUBLIC_URL = 'https://m-s3-firmado.s3.amazonaws.com/builds/imagenes/archivo-subido-HASH.png';
+    
+    async function startUpload() {
+        const fileInput = document.getElementById('fileInput');
+        const file = fileInput.files[0];
+
+        if (!file) {
+            updateStatus('error', 'Por favor, selecciona un archivo.');
+            return;
+        }
+        
+        if (SIMULATED_PRESIGNED_URL === 'PEGAR_AQUÍ_LA_URL_LARGA_GENERADA_POR_GITHUB_ACTIONS') {
+            updateStatus('error', 'Error: La URL prefirmada no ha sido actualizada en el código.');
+            return;
+        }
+
+        document.getElementById('uploadButton').disabled = true;
+        updateStatus('info', 'Paso 1/2: Usando la URL firmada...');
+        
+        try {
+            const uploadResponse = await fetch(SIMULATED_PRESIGNED_URL, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': file.type 
+                },
+                body: file
+            });
+
+            if (uploadResponse.ok) {
+                updateStatus('success', '¡Archivo subido con éxito a S3!', SIMULATED_PUBLIC_URL);
+            } else {
+                const errorText = await uploadResponse.text();
+                updateStatus('error', `Error al subir: ${uploadResponse.status}. (URL expirada o Content-Type incorrecto)`);
+                console.error('Error de S3:', errorText);
+            }
+
+        } catch (error) {
+            updateStatus('error', 'Error de red. Asegúrate de que tu navegador tiene acceso.');
+            console.error('Error de red/fetch:', error);
+        } finally {
+            document.getElementById('uploadButton').disabled = false;
+        }
+    }
+
+</script>
+
+</body>
+</html>
