@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Subir imagen a S3 con Presigned PUT</title>
+</head>
+<body>
+
+
+  <h2>Subir imagen a S3</h2>
+  <input type="file" id="fileInput" accept="image/*" />
+  <button id="uploadBtn">Subir a S3</button>
+  <p id="status"></p>
+
+  <script>
+    async function uploadFromHtml() {
+      const fileInput = document.getElementById('fileInput');
+      const statusEl = document.getElementById('status');
+      if (!fileInput.files || fileInput.files.length === 0) return alert('Selecciona un archivo!');
+      const file = fileInput.files[0];
+
+      statusEl.innerText = 'Solicitando URL presignada...';
+
+      try {
+        const params = new URLSearchParams({ filename: file.name, contentType: file.type });
+        const presignedResp = await fetch(`/presigned?${params.toString()}`);
+        if (!presignedResp.ok) throw new Error('No se pudo obtener URL presignada');
+        const { url, publicUrl } = await presignedResp.json();
+
+        statusEl.innerText = 'Subiendo archivo a S3...';
+        const putResp = await fetch(url, {
+          method: 'PUT',
+          headers: { 'Content-Type': file.type },
+          body: file
+        });
+
+        if (putResp.ok) {
+          statusEl.innerHTML = `✔ Subido correctamente!<br><a href="${publicUrl}" target="_blank">Ver archivo</a>`;
+        } else {
+          const errText = await putResp.text();
+          console.error('PUT error', putResp.status, errText);
+          statusEl.innerText = `❌ Error al subir: ${putResp.statusText} (${putResp.status})`;
+        }
+      } catch (err) {
+        console.error(err);
+        statusEl.innerText = `❌ Error: ${err.message}, ${err.stack}`;
+      }
+    }
+
+    document.getElementById('uploadBtn').addEventListener('click', uploadFromHtml);
+  </script>
+
+</body>
+</html>
